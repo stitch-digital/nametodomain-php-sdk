@@ -31,16 +31,14 @@ trait SupportsJobEndpoints
     }
 
     /**
-     * Get job items as a collection.
-     * Returns a LazyCollection (when Laravel is available) or an iterable.
+     * Get job items paginator.
      *
-     * @return iterable<int, JobItem>
+     * @return \Saloon\PaginationPlugin\Paginator
      */
-    public function jobItems(string $jobId, int $page = 1, int $perPage = 50): iterable
+    public function jobItems(string $jobId, int $page = 1, int $perPage = 50): \Saloon\PaginationPlugin\Paginator
     {
         $request = new GetJobItemsRequest($jobId, $page, $perPage);
 
-        // @phpstan-ignore-next-line
-        return $this->paginate($request)->collect();
+        return $this->paginate($request);
     }
 }
