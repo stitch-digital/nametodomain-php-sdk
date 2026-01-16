@@ -1,7 +1,6 @@
 # Name To Domain PHP SDK
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/stitch-digital/nametodomain-php-sdk.svg?style=flat-square)](https://packagist.org/packages/stitch-digital/nametodomain-php-sdk)
-![Tests](https://github.com/stitch-digital/nametodomain-php-sdk/workflows/run-tests/badge.svg)
 [![Total Downloads](https://img.shields.io/packagist/dt/stitch-digital/nametodomain-php-sdk.svg?style=flat-square)](https://packagist.org/packages/nametodomain/nametodomain-php-sdk)
 
 This package is the official PHP SDK for the [Name To Domain](https://nametodomain.dev) API, built with [Saloon](https://docs.saloon.dev/) v3.
