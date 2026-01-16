@@ -1,0 +1,11 @@
+{
+    "input": {
+        "company": "Unknown Company",
+        "country": "US"
+    },
+    "result": {
+        "company_normalized": null,
+        "domain": null,
+        "confidence": null
+    }
+}

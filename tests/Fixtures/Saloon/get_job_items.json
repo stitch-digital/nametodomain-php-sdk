@@ -1,0 +1,51 @@
+{
+    "data": {
+        "id": "01HQJXK8N3YWVF6BCMPG42X1TZ",
+        "status": "completed",
+        "total_items": 100,
+        "processed_items": 100,
+        "failed_items": 0,
+        "created_at": "2026-01-15T10:30:00+00:00",
+        "completed_at": "2026-01-15T10:32:15+00:00"
+    },
+    "output": [
+        {
+            "id": "01HQJXK8N4ABCD1234567890XY",
+            "input": {
+                "company": "Stripe",
+                "country": "US"
+            },
+            "status": "completed",
+            "result": {
+                "company_normalized": "Stripe, Inc.",
+                "domain": "stripe.com",
+                "confidence": 98
+            },
+            "error_message": null,
+            "processed_at": "2026-01-15T10:30:45+00:00"
+        },
+        {
+            "id": "01HQJXK8N4ABCD1234567890YZ",
+            "input": {
+                "company": "Spotify",
+                "country": "SE"
+            },
+            "status": "completed",
+            "result": {
+                "company_normalized": "Spotify AB",
+                "domain": "spotify.com",
+                "confidence": 99
+            },
+            "error_message": null,
+            "processed_at": "2026-01-15T10:30:46+00:00"
+        }
+    ],
+    "pagination": {
+        "current_page": 1,
+        "per_page": 50,
+        "total": 100,
+        "last_page": 2,
+        "from": 1,
+        "to": 50
+    }
+}

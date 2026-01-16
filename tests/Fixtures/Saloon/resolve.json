@@ -1,0 +1,11 @@
+{
+    "input": {
+        "company": "Stripe",
+        "country": "US"
+    },
+    "result": {
+        "company_normalized": "Stripe, Inc.",
+        "domain": "stripe.com",
+        "confidence": 98
+    }
+}
