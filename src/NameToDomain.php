@@ -53,7 +53,7 @@ final class NameToDomain extends Connector implements HasPagination
 
     public function resolveBaseUrl(): string
     {
-        return mb_rtrim($this->baseUrl, '/');
+        return rtrim($this->baseUrl, '/');
     }
 
     public function paginate(Request $request): Paginator
