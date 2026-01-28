@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NameToDomain\PhpSdk\Requests\Jobs;
+namespace NameToDomain\PhpSdk\Requests\Enrich;
 
 use NameToDomain\PhpSdk\Dto\Job;
 use Saloon\Contracts\Body\HasBody;
@@ -11,14 +11,14 @@ use Saloon\Http\Request;
 use Saloon\Http\Response;
 use Saloon\Traits\Body\HasJsonBody;
 
-final class CreateJobRequest extends Request implements HasBody
+final class EnrichBatchRequest extends Request implements HasBody
 {
     use HasJsonBody;
 
     protected Method $method = Method::POST;
 
     /**
-     * @param  array<int, array{company: string, country: string}>  $items
+     * @param  array<int, array{company: string, country: string, emails?: array<int, string>, identifier?: string}>  $items
      */
     public function __construct(
         protected array $items,
@@ -27,7 +27,7 @@ final class CreateJobRequest extends Request implements HasBody
 
     public function resolveEndpoint(): string
     {
-        return '/jobs';
+        return '/domain/enrich/batch';
     }
 
     public function createDtoFromResponse(Response $response): Job
@@ -39,9 +39,24 @@ final class CreateJobRequest extends Request implements HasBody
 
     protected function defaultBody(): array
     {
-        return [
-            'items' => $this->items,
-        ];
+        $items = array_map(function (array $item): array {
+            $entry = [
+                'company' => $item['company'],
+                'country' => $item['country'],
+            ];
+
+            if (! empty($item['emails'] ?? [])) {
+                $entry['emails'] = $item['emails'];
+            }
+
+            if (! empty($item['identifier'] ?? '')) {
+                $entry['identifier'] = (string) $item['identifier'];
+            }
+
+            return $entry;
+        }, $this->items);
+
+        return ['items' => $items];
     }
 
     protected function defaultHeaders(): array

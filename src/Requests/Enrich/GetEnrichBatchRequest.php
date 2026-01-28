@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace NameToDomain\PhpSdk\Requests\Jobs;
+namespace NameToDomain\PhpSdk\Requests\Enrich;
 
 use NameToDomain\PhpSdk\Dto\JobItem;
 use Saloon\Enums\Method;
@@ -10,7 +10,7 @@ use Saloon\Http\Request;
 use Saloon\Http\Response;
 use Saloon\PaginationPlugin\Contracts\Paginatable;
 
-final class GetJobItemsRequest extends Request implements Paginatable
+final class GetEnrichBatchRequest extends Request implements Paginatable
 {
     protected Method $method = Method::GET;
 
@@ -22,7 +22,7 @@ final class GetJobItemsRequest extends Request implements Paginatable
 
     public function resolveEndpoint(): string
     {
-        return "/jobs/{$this->jobId}/items";
+        return "/domain/enrich/batch/{$this->jobId}";
     }
 
     /**
@@ -31,10 +31,11 @@ final class GetJobItemsRequest extends Request implements Paginatable
     public function createDtoFromResponse(Response $response): array
     {
         $data = $response->json();
-        $items = $data['output'] ?? [];
+        $payload = $data['data'] ?? $data;
+        $items = $payload['output'] ?? [];
 
         return array_map(
-            fn (array $item) => JobItem::fromResponse($item),
+            fn (array $item): JobItem => JobItem::fromResponse($item),
             $items
         );
     }

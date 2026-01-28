@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace NameToDomain\PhpSdk;
 
-use NameToDomain\PhpSdk\Concerns\SupportsJobEndpoints;
+use NameToDomain\PhpSdk\Concerns\SupportsEnrichEndpoints;
 use NameToDomain\PhpSdk\Concerns\SupportsResolveEndpoints;
 use NameToDomain\PhpSdk\Exceptions\NameToDomainException;
 use NameToDomain\PhpSdk\Exceptions\ValidationException;
+use NameToDomain\PhpSdk\Requests\Enrich\GetEnrichBatchRequest;
 use ReflectionClass;
 use Saloon\Http\Auth\TokenAuthenticator;
 use Saloon\Http\Connector;
@@ -26,7 +27,7 @@ final class NameToDomain extends Connector implements HasPagination
     use AcceptsJson;
     use AlwaysThrowOnErrors;
     use HasTimeout;
-    use SupportsJobEndpoints;
+    use SupportsEnrichEndpoints;
     use SupportsResolveEndpoints;
 
     public function __construct(
@@ -59,8 +60,7 @@ final class NameToDomain extends Connector implements HasPagination
     {
         $perPageLimit = null;
 
-        // Extract per_page from request if it's a GetJobItemsRequest
-        if ($request instanceof Requests\Jobs\GetJobItemsRequest) {
+        if ($request instanceof GetEnrichBatchRequest) {
             $reflection = new ReflectionClass($request);
             $perPageProperty = $reflection->getProperty('perPage');
             $perPageProperty->setAccessible(true);
@@ -71,8 +71,12 @@ final class NameToDomain extends Connector implements HasPagination
         {
             protected function isLastPage(Response $response): bool
             {
-                $currentPage = $response->json('pagination.current_page');
-                $lastPage = $response->json('pagination.last_page');
+                $currentPage = $response->json('data.pagination.current_page');
+                $lastPage = $response->json('data.pagination.last_page');
+
+                if ($currentPage === null || $lastPage === null) {
+                    return true;
+                }
 
                 return $currentPage >= $lastPage;
             }
@@ -84,7 +88,7 @@ final class NameToDomain extends Connector implements HasPagination
 
             protected function getTotalPages(Response $response): int
             {
-                return $response->json('pagination.last_page', 1);
+                return $response->json('data.pagination.last_page', 1);
             }
         };
 

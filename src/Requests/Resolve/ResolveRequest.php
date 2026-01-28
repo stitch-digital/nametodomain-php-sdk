@@ -18,15 +18,18 @@ final class ResolveRequest extends Request implements HasBody
 
     protected Method $method = Method::POST;
 
+    /**
+     * @param  array<int, string>|null  $emails
+     */
     public function __construct(
         protected string $company,
         protected string $country,
-        protected ?string $idempotencyKey = null,
+        protected ?array $emails = null,
     ) {}
 
     public function resolveEndpoint(): string
     {
-        return '/resolve';
+        return '/domain';
     }
 
     public function createDtoFromResponse(Response $response): Resolution
@@ -52,20 +55,15 @@ final class ResolveRequest extends Request implements HasBody
 
     protected function defaultBody(): array
     {
-        return [
+        $body = [
             'company' => $this->company,
             'country' => $this->country,
         ];
-    }
 
-    protected function defaultHeaders(): array
-    {
-        $headers = [];
-
-        if ($this->idempotencyKey !== null) {
-            $headers['Idempotency-Key'] = $this->idempotencyKey;
+        if ($this->emails !== null && $this->emails !== []) {
+            $body['emails'] = $this->emails;
         }
 
-        return $headers;
+        return $body;
     }
 }

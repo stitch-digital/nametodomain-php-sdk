@@ -1,11 +1,16 @@
 {
-    "input": {
-        "company": "Unknown Company",
-        "country": "US"
+    "statusCode": 200,
+    "headers": {},
+    "data": {
+        "input": {
+            "company": "Unknown Company",
+            "country": "US"
+        },
+        "result": {
+            "company_normalized": null,
+            "domain": null,
+            "confidence": null
+        }
     },
-    "result": {
-        "company_normalized": null,
-        "domain": null,
-        "confidence": null
-    }
+    "context": []
 }

@@ -9,11 +9,12 @@ use NameToDomain\PhpSdk\Enums\JobItemStatus;
 final class JobItem
 {
     /**
-     * @param  array{company: string, country: string}  $input
-     * @param  array{company_normalized: string|null, domain: string|null, confidence: int|null}|null  $result
+     * @param  array{company: string, country: string, email_domains?: list<string>}  $input
+     * @param  array{company_normalized?: string|null, domain?: string|null, confidence?: int|null, favicon_url?: string|null, trust?: array<string, mixed>, web_metadata?: array<string, mixed>, company_classification?: array<string, mixed>, email_provider_hints?: array<string, mixed>}|null  $result
      */
     public function __construct(
         public ?string $id,
+        public ?string $identifier,
         public array $input,
         public JobItemStatus $status,
         public ?array $result = null,
@@ -23,9 +24,8 @@ final class JobItem
 
     public static function fromResponse(array $data): self
     {
-        // Handle missing fields gracefully - the API might not return all fields
-        // The JobItemResource currently only returns input and result
         $id = $data['id'] ?? null;
+        $identifier = $data['identifier'] ?? null;
         $input = $data['input'] ?? [];
         $status = isset($data['status']) && is_string($data['status'])
             ? JobItemStatus::from($data['status'])
@@ -36,6 +36,7 @@ final class JobItem
 
         return new self(
             id: $id,
+            identifier: $identifier,
             input: $input,
             status: $status,
             result: $result,

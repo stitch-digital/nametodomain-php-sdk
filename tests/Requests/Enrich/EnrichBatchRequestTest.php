@@ -2,36 +2,33 @@
 
 declare(strict_types=1);
 
-use NameToDomain\PhpSdk\Requests\Jobs\CreateJobRequest;
-use NameToDomain\PhpSdk\Tests\TestCase;
+use NameToDomain\PhpSdk\Requests\Enrich\EnrichBatchRequest;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
 
-uses(TestCase::class);
-
-it('can create a job', function () {
+it('can create an enrich batch request', function () {
     MockClient::global([
-        CreateJobRequest::class => MockResponse::fixture('create_job'),
+        EnrichBatchRequest::class => MockResponse::fixture('enrich_batch'),
     ]);
 
-    $request = new CreateJobRequest([
+    $request = new EnrichBatchRequest([
         ['company' => 'Stripe', 'country' => 'US'],
         ['company' => 'Shopify', 'country' => 'CA'],
     ]);
     $response = $this->sdk->send($request);
     $dto = $response->dto();
 
-    expect($dto->status->value)->toBe('pending')
+    expect($dto->status->value)->toBe('processing')
         ->and($dto->totalItems)->toBe(2)
         ->and($dto->processedItems)->toBe(0);
 });
 
-it('can create a job with idempotency key', function () {
+it('can create an enrich batch request with idempotency key', function () {
     MockClient::global([
-        CreateJobRequest::class => MockResponse::fixture('create_job'),
+        EnrichBatchRequest::class => MockResponse::fixture('enrich_batch'),
     ]);
 
-    $request = new CreateJobRequest(
+    $request = new EnrichBatchRequest(
         [
             ['company' => 'Stripe', 'country' => 'US'],
         ],
@@ -40,12 +37,13 @@ it('can create a job with idempotency key', function () {
     $response = $this->sdk->send($request);
     $dto = $response->dto();
 
-    expect($dto->status->value)->toBe('pending');
+    expect($dto->status->value)->toBe('processing');
 });
 
-it('handles validation errors', function () {
+it('handles validation errors for enrich batch request', function () {
+    MockClient::destroyGlobal();
     MockClient::global([
-        CreateJobRequest::class => MockResponse::make(
+        EnrichBatchRequest::class => MockResponse::make(
             body: [
                 'message' => 'The given data was invalid.',
                 'errors' => [
@@ -56,7 +54,7 @@ it('handles validation errors', function () {
         ),
     ]);
 
-    $request = new CreateJobRequest([]);
+    $request = new EnrichBatchRequest([]);
 
     expect(fn () => $this->sdk->send($request))
         ->toThrow(NameToDomain\PhpSdk\Exceptions\ValidationException::class);

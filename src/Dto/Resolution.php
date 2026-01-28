@@ -9,7 +9,7 @@ use InvalidArgumentException;
 final class Resolution
 {
     /**
-     * @param  array{company: string, country: string}  $input
+     * @param  array{company: string, country: string, email_domains?: list<string>}  $input
      * @param  array{company_normalized: string|null, domain: string|null, confidence: int|null}  $result
      */
     public function __construct(

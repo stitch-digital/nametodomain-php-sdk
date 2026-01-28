@@ -1,11 +1,16 @@
 {
-    "input": {
-        "company": "Stripe",
-        "country": "US"
+    "statusCode": 200,
+    "headers": {},
+    "data": {
+        "input": {
+            "company": "Stripe",
+            "country": "US"
+        },
+        "result": {
+            "company_normalized": "Stripe, Inc.",
+            "domain": "stripe.com",
+            "confidence": 98
+        }
     },
-    "result": {
-        "company_normalized": "Stripe, Inc.",
-        "domain": "stripe.com",
-        "confidence": 98
-    }
+    "context": []
 }

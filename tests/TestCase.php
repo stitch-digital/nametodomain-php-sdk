@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace NameToDomain\PhpSdk\Tests;
 
 use NameToDomain\PhpSdk\NameToDomain;
-use Saloon\Http\Faking\MockConfig;
+use Saloon\MockConfig;
+use Saloon\Http\Faking\MockClient;
 
 abstract class TestCase extends \PHPUnit\Framework\TestCase
 {
@@ -18,5 +19,16 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
         $this->sdk = new NameToDomain('test-api-token');
 
         MockConfig::setFixturePath(__DIR__.'/Fixtures/Saloon');
+        
+        // Reset mock client before each test
+        MockClient::destroyGlobal();
+    }
+
+    protected function tearDown(): void
+    {
+        // Clean up mock client after each test
+        MockClient::destroyGlobal();
+        
+        parent::tearDown();
     }
 }

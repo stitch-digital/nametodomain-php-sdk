@@ -3,11 +3,8 @@
 declare(strict_types=1);
 
 use NameToDomain\PhpSdk\Requests\Resolve\ResolveRequest;
-use NameToDomain\PhpSdk\Tests\TestCase;
 use Saloon\Http\Faking\MockClient;
 use Saloon\Http\Faking\MockResponse;
-
-uses(TestCase::class);
 
 it('can resolve a company', function () {
     MockClient::global([
@@ -23,12 +20,12 @@ it('can resolve a company', function () {
         ->and($dto->input['country'])->toBe('US');
 });
 
-it('can resolve a company with idempotency key', function () {
+it('can resolve a company with emails', function () {
     MockClient::global([
         ResolveRequest::class => MockResponse::fixture('resolve'),
     ]);
 
-    $request = new ResolveRequest('Stripe', 'US', 'test-idempotency-key');
+    $request = new ResolveRequest('Stripe', 'US', ['support@stripe.com']);
     $response = $this->sdk->send($request);
     $dto = $response->dto();
 
@@ -36,6 +33,7 @@ it('can resolve a company with idempotency key', function () {
 });
 
 it('handles validation errors', function () {
+    MockClient::destroyGlobal();
     MockClient::global([
         ResolveRequest::class => MockResponse::make(
             body: [

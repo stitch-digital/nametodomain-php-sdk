@@ -8,14 +8,14 @@ This package is the official PHP SDK for the [Name To Domain](https://nametodoma
 ```php
 use NameToDomain\PhpSdk\NameToDomain;
 
-// Single resolution
+// Single resolution (sync)
 $result = NameToDomain::make($token)->resolve(
     company: 'Stitch Digital',
     country: 'GB'
 );
 
-// Create batch job
-$job = NameToDomain::make($token)->createJob(
+// Batch enrichment (async)
+$job = NameToDomain::make($token)->enrichBatch(
     items: [
         ['company' => 'Stripe', 'country' => 'US'],
         ['company' => 'Spotify', 'country' => 'SE'],
@@ -39,25 +39,25 @@ the [Name To Domain API documentation](https://stitchdigital.gitbook.io/nametodo
 ```php
 use NameToDomain\PhpSdk\NameToDomain;
 
-// Single resolution
+// Single resolution (sync)
 $result = NameToDomain::make($token)->resolve(
     company: 'Stitch Digital',
     country: 'GB'
 );
 
-// Create batch job
-$job = NameToDomain::make($token)->createJob(
+// Batch enrichment (async)
+$job = NameToDomain::make($token)->enrichBatch(
     items: [
         ['company' => 'Stripe', 'country' => 'US'],
         ['company' => 'Spotify', 'country' => 'SE'],
     ]
 );
 
-// Check job status
-$jobStatus = NameToDomain::make($token)->job(jobId: $job->id);
+// Check batch job status and get results
+$batchResult = NameToDomain::make($token)->enrichBatchJob(jobId: $job->id);
 
-// Get all job items
-$items = NameToDomain::make($token)->jobItems(jobId: $job->id)->collect()->all();
+// Or iterate over all batch items (paginated)
+$items = NameToDomain::make($token)->enrichBatchJobItems(jobId: $job->id)->collect()->all();
 ```
 
 ## Usage
@@ -73,12 +73,13 @@ $client = NameToDomain::make('your-api-token');
 
 ### Setting a timeout
 
-By default, the SDK will wait for a response from Name To Domain for 10 seconds. You can change this by passing a `requestTimeout` option:
+By default, the SDK waits 10 seconds for a response. Override via the constructor (`apiToken`, `baseUrl`, `requestTimeout`):
 
 ```php
-$client = NameToDomain::make(
-    apiToken: 'your-api-token',
-    requestTimeout: 30
+$client = new \NameToDomain\PhpSdk\NameToDomain(
+    'your-api-token',
+    'https://nametodomain.dev/api/v1',
+    30
 );
 ```
 
@@ -101,7 +102,7 @@ For all other errors, the SDK will throw a `\NameToDomain\PhpSdk\Exceptions\Name
 
 ```php
 try {
-    $client->job(jobId: 'invalid-id');
+    $client->enrichJob(jobId: 'invalid-id');
 } catch (\NameToDomain\PhpSdk\Exceptions\NameToDomainException $exception) {
     $exception->getMessage();
     $exception->response; // access the Saloon Response object for debugging
@@ -125,73 +126,101 @@ $result = NameToDomain::make($token)->resolve(
 
 The response includes the original input and the resolution result. If no reliable match is found, the domain and confidence will be `null`.
 
-### Resolve with idempotency key
+### Resolve with emails
+
+You can optionally pass email addresses for disambiguation:
+
+```php
+$result = NameToDomain::make($token)->resolve(
+    company: 'Stripe',
+    country: 'US',
+    emails: ['support@stripe.com', 'sales@stripe.com']
+);
+```
+
+## Domain enrichment
+
+Domain enrichment runs asynchronously and returns richer data (favicon, trust signals, web metadata, company classification, email provider hints, etc.). There are single-company and batch flows.
+
+### Enrich a single company
+
+Create an enrichment job for one company. Poll `enrichJob(jobId)` for the result.
+
+```php
+$job = NameToDomain::make($token)->enrich(
+    company: 'Stripe',
+    country: 'US',
+    emails: ['support@stripe.com'],
+    identifier: 'stripe-001'
+);
+
+// Poll for result
+$result = NameToDomain::make($token)->enrichJob($job->id);
+// When completed, $result->output is a JobItem with the enriched data
+```
+
+### Enrich a single company with idempotency key
 
 You can include an idempotency key to safely retry requests:
 
 ```php
-$result = NameToDomain::make($token)->resolve(
+$job = NameToDomain::make($token)->enrich(
     company: 'Stripe',
     country: 'US',
     idempotencyKey: 'my-unique-idempotency-key'
 );
 ```
 
-## Jobs
+### Enrich multiple companies (batch)
 
-Jobs allow you to process multiple company resolutions in batch.
-
-### Creating a job
-
-You can use the `createJob` method to create a batch job.
+Create a batch enrichment job. Each item may include `company`, `country`, and optionally `emails` and `identifier`.
 
 ```php
-$records = [
-    ['company' => 'Stripe', 'country' => 'US'],
-    ['company' => 'Spotify', 'country' => 'SE'],
-];
-
-$job = NameToDomain::make($token)->createJob(
-    items: $records
+$job = NameToDomain::make($token)->enrichBatch(
+    items: [
+        ['company' => 'Stripe', 'country' => 'US', 'emails' => ['support@stripe.com'], 'identifier' => 'stripe-001'],
+        ['company' => 'Spotify', 'country' => 'SE', 'identifier' => 'spotify-001'],
+    ]
 );
 ```
 
-### Creating a job with idempotency key
-
-You can include an idempotency key to safely retry job creation:
+### Enrich batch with idempotency key
 
 ```php
-$job = NameToDomain::make($token)->createJob(
-    items: [
-        ['company' => 'Stripe', 'country' => 'US'],
-    ],
+$job = NameToDomain::make($token)->enrichBatch(
+    items: [['company' => 'Stripe', 'country' => 'US']],
     idempotencyKey: 'my-unique-idempotency-key'
 );
 ```
 
-### Getting a single job
+### Get a single enrich job
 
-You can use the `job` method to get a single job and check its status.
+Use `enrichJob` to get a single-company enrichment job. The `output` field is only present when the job is completed.
 
 ```php
-$jobId = '01KF3TH8MCBFAZ98MFYB6TS63H';
-
-$job = NameToDomain::make($token)->job(jobId: $jobId);
+$result = NameToDomain::make($token)->enrichJob('01HQJXK8N3YWVF6BCMPG42X1TZ');
+// $result->job and $result->output (JobItem or null)
 ```
 
-### Getting job items
+### Get a batch enrich job
 
-The `jobItems` method returns a Saloon `Paginator` instance, giving you full flexibility in how you consume the paginated results. This leverages Saloon's powerful pagination features.
+Use `enrichBatchJob` to get a batch job with one page of `output` and `pagination` (when completed):
+
+```php
+$result = NameToDomain::make($token)->enrichBatchJob('01HQJXK8N3YWVF6BCMPG42X1TZ', page: 1, perPage: 50);
+// $result->job, $result->output (JobItem[]), $result->pagination
+```
+
+### Get batch enrich job items (paginated)
+
+The `enrichBatchJobItems` method returns a Saloon `Paginator` over all `JobItem` DTOs across pages.
 
 #### Iterating over items
 
-The simplest way to get all job items is to iterate over them using the `items()` method:
-
 ```php
-$paginator = NameToDomain::make($token)->jobItems(jobId: $jobId);
+$paginator = NameToDomain::make($token)->enrichBatchJobItems(jobId: $jobId);
 
 foreach ($paginator->items() as $item) {
-    // $item is a NameToDomain\PhpSdk\Dto\JobItem
     if ($item->result && $item->result['domain']) {
         echo "{$item->input['company']}: {$item->result['domain']}\n";
     }
@@ -200,46 +229,17 @@ foreach ($paginator->items() as $item) {
 
 #### Using Laravel Collections
 
-If you're using Laravel (or have `illuminate/collections` installed), you can use the `collect()` method to get a `LazyCollection`:
-
 ```php
-// Get all items as an array
 $items = NameToDomain::make($token)
-    ->jobItems(jobId: $jobId)
+    ->enrichBatchJobItems(jobId: $jobId)
     ->collect()
-    ->all();
-
-// Use collection methods for filtering, mapping, etc.
-$domains = NameToDomain::make($token)
-    ->jobItems(jobId: $jobId)
-    ->collect()
-    ->filter(fn($item) => $item->result && $item->result['domain'])
-    ->map(fn($item) => $item->result['domain'])
     ->all();
 ```
 
-The `LazyCollection` is memory-efficient and only loads one page at a time, making it perfect for processing large batches.
-
-#### Iterating over responses
-
-You can also iterate directly over the paginator to get each page as a Saloon `Response`:
+#### Custom pagination
 
 ```php
-$paginator = NameToDomain::make($token)->jobItems(jobId: $jobId);
-
-foreach ($paginator as $response) {
-    $status = $response->status();
-    $data = $response->json();
-    // Process each page's response
-}
-```
-
-#### Custom pagination parameters
-
-You can specify the starting page and items per page:
-
-```php
-$paginator = NameToDomain::make($token)->jobItems(
+$paginator = NameToDomain::make($token)->enrichBatchJobItems(
     jobId: $jobId,
     page: 2,
     perPage: 100
@@ -248,105 +248,31 @@ $paginator = NameToDomain::make($token)->jobItems(
 
 #### Job item structure
 
-Each job item includes the original input, processing status, and result:
+Each `JobItem` includes:
 
-```php
-foreach ($paginator->items() as $item) {
-    // $item is a NameToDomain\PhpSdk\Dto\JobItem
-    // Structure:
-    // $item->id => '01HQJXK8N4ABCD1234567890XY' (or null if not available)
-    // $item->input => ['company' => 'Stripe', 'country' => 'US']
-    // $item->status => NameToDomain\PhpSdk\Enums\JobItemStatus
-    // $item->result => ['company_normalized' => '...', 'domain' => '...', 'confidence' => 98] (or null)
-    // $item->errorMessage => null (or error message if failed)
-    // $item->processedAt => '2026-01-16T16:34:45+00:00' (or null)
-    
-    echo "Status: {$item->status->value}\n";
-    
-    if ($item->result) {
-        echo "Domain: {$item->result['domain']}\n";
-        echo "Confidence: {$item->result['confidence']}\n";
-    }
-    
-    if ($item->errorMessage) {
-        echo "Error: {$item->errorMessage}\n";
-    }
-}
-```
+- `id`, `identifier` (client-supplied, if provided)
+- `input` (company, country, email_domains)
+- `status`, `result`, `errorMessage`, `processedAt`
+
+The `result` array can contain `company_normalized`, `domain`, `confidence`, and for enrichment: `favicon_url`, `trust`, `web_metadata`, `company_classification`, `email_provider_hints`.
 
 ## Pagination
 
-The SDK uses [Saloon's pagination plugin](https://docs.saloon.dev/installable-plugins/pagination) to handle paginated responses. The `jobItems()` method returns a `Paginator` instance that provides several ways to consume the results.
-
-### Why use a Paginator?
-
-Saloon's paginators are memory-efficient - they only keep one page in memory at a time. This means you can iterate through thousands of pages and millions of results without running out of memory.
-
-### Available methods
-
-#### `items()` - Iterate over individual items
-
-Returns a generator that yields each `JobItem` DTO across all pages:
-
-```php
-$paginator = NameToDomain::make($token)->jobItems(jobId: $jobId);
-
-foreach ($paginator->items() as $item) {
-    // Process each JobItem
-    echo $item->result['domain'];
-}
-```
-
-#### `collect()` - Get a LazyCollection
-
-Returns a Laravel `LazyCollection` (requires `illuminate/collections`):
-
-```php
-// Get all items as an array
-$allItems = $paginator->collect()->all();
-
-// Use collection methods
-$domains = $paginator->collect()
-    ->filter(fn($item) => $item->result && $item->result['domain'])
-    ->map(fn($item) => $item->result['domain'])
-    ->values()
-    ->all();
-```
-
-#### Direct iteration - Get each page as a Response
-
-Iterate directly over the paginator to get each page:
-
-```php
-foreach ($paginator as $response) {
-    $items = $response->dto(); // Get items from this page
-    // Process the page
-}
-```
-
-### Advanced pagination features
-
-For more advanced pagination features like asynchronous pagination, request pooling, and custom pagination logic, see the [Saloon pagination documentation](https://docs.saloon.dev/installable-plugins/pagination).
+The SDK uses [Saloon's pagination plugin](https://docs.saloon.dev/installable-plugins/pagination). The `enrichBatchJobItems()` method returns a `Paginator` that yields `JobItem` DTOs across pages. See [Saloon pagination documentation](https://docs.saloon.dev/installable-plugins/pagination) for `items()`, `collect()`, and advanced usage.
 
 ## Using Saloon requests directly
 
-This SDK uses [Saloon](https://docs.saloon.dev) to make the HTTP requests. Instead of using the `NameToDomain` class, you can use the underlying request classes directly. This way, you have full power to customize the requests.
+You can use the request classes directly for full control:
 
 ```php
 use NameToDomain\PhpSdk\NameToDomain;
 use NameToDomain\PhpSdk\Requests\Resolve\ResolveRequest;
 
 $client = NameToDomain::make('your-api-token');
-$request = ResolveRequest::make('Stripe', 'US');
+$request = new ResolveRequest('Stripe', 'US');
 
-// Get raw response from the Name To Domain API
-$response = $client->send($request)->json();
-
-// Or get the DTO directly
 $response = $client->send($request)->dto();
 ```
-
-Take a look at the [Saloon documentation](https://docs.saloon.dev) to learn more about how to customize the requests.
 
 ## Security
 

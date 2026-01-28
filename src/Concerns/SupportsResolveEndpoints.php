@@ -10,9 +10,12 @@ use NameToDomain\PhpSdk\Requests\Resolve\ResolveRequest;
 /** @mixin \NameToDomain\PhpSdk\NameToDomain */
 trait SupportsResolveEndpoints
 {
-    public function resolve(string $company, string $country, ?string $idempotencyKey = null): Resolution
+    /**
+     * @param  array<int, string>|null  $emails
+     */
+    public function resolve(string $company, string $country, ?array $emails = null): Resolution
     {
-        $request = new ResolveRequest($company, $country, $idempotencyKey);
+        $request = new ResolveRequest($company, $country, $emails);
 
         return $this->send($request)->dto();
     }
